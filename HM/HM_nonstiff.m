@@ -48,8 +48,10 @@ phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 % the right hand side, before noise
 RHS = -J_h + kappa*phi_y_h;
 
-% noise = noise_fn(N,noise_params); %generate the noise
-% RHS = RHS + noise;
+
+%%% ONLY IF DETERMINISTIC NOISE
+noise = noise_fn(q_h,noise_params); %generate the noise
+RHS = RHS + noise;
 
 
 % disp(['norm imag value of RHS is ',num2str(norm(imag(ifft2(RHS))))]);
