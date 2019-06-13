@@ -31,6 +31,7 @@ dt = T/M; %time step
 N = ceil(sqrt(size(init,1)));
 u = zeros([size(init,1),3]); t = zeros(1,3); %initialize
 u(:,1:2) = init; t(1:2) = [0,dt];
+u(:,3) = u(:,2); t(3) = t(2);
 
 A = func_s(u(:,1),params_s); %A only needs to be computed once
 A = speye(size(A)) - (2*dt/3)*A; %linear system to solve at each step
@@ -44,7 +45,7 @@ noise_params = params_nl(5:end);
 if isdiag(A)
 disp('is diag');
     B = (1./diag(A)); %SIGNIFICANT SPEED UP when A is diagonal
-    for i=2:M
+    for i=1:M
         B_curr = func_nl(u(:,2),func_noise,@nonlinJ,params_nl); %one nonlin func eval per step
         %form the rhs of the linear system to solve at this step
         b = (4/3)*u(:,2) - (1/3)*u(:,1) + (2*dt/3)*(2*B_curr - B_prev);

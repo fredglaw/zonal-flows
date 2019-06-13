@@ -6,16 +6,16 @@ N = 64; %number of nodes in each direction
 hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1/2; %mean density gradient
-alpha = 5; %adiabaticity parameter
-T = 200; %terminal time
-N_time = T*200; %number of time steps
+alpha = 2; %adiabaticity parameter
+T = 100; %terminal time
+N_time = T*1000; %number of time steps
 dt = T/N_time;
 
 x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 [X,Y] = meshgrid(x,x);
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
-is_first_time = 1;
+is_first_time = 0;
 multistep_flag = 1; %flag to see whether to use multistep, AB2BDF2 integrator
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,7 +43,7 @@ term_T = init_T + T;
 
 
 % build parameters
-modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
+modified = 0; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 
 %parameter for the noise size, based on IC, want this independent of current soln to be white in time
 if is_first_time
