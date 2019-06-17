@@ -1,4 +1,4 @@
-function prod_h = aa_prod(term1_h,term2_h,N,M)
+function prod_h = aa_prod(term1_h,term2_h,N,M,aa_deriv_flag,term1_axis,term2_axis)
 % Subroutine to compute an antialiased product of term1, term2 using M
 % terms, assumed unshifted
 % 
@@ -6,8 +6,17 @@ function prod_h = aa_prod(term1_h,term2_h,N,M)
 %       term2_h -- second term, in Fourier space
 %       N -- original number of nodes
 %       M -- number of nodes to oversample with
+%       aa_deriv_flag -- optional flag noting that term1 and term2 are
+%                        derivatives, and we have an even number of modes, 
+%                        so handle the unmatched in oversample
+%       term1_axis -- axis along which differentiation happens for term1
+%       term2_axis -- axis along which differentiation happens for term2
 % Output: prod_h -- the anti-aliased product, in Fourier space
 % 
+if nargin < 5
+    aa_deriv_flag = 0;
+    term1_axis = 0; term2_axis = 0;
+end
 m_lim = floor((N-1)/2); %index limits of the matched modes
 
 % oversample first in x, then in y
@@ -17,8 +26,8 @@ m_lim = floor((N-1)/2); %index limits of the matched modes
 % term2_os = interpft(interpft(real(term2),M,1),M,2);
 
 % % manual padding, faster
-term1_os = manual2Doversample(term1_h,N,M);
-term2_os = manual2Doversample(term2_h,N,M);
+term1_os = manual2Doversample(term1_h,N,M,aa_deriv_flag,term1_axis);
+term2_os = manual2Doversample(term2_h,N,M,aa_deriv_flag,term2_axis);
 
 %since our data is real, we enforce real
 prod_os = real(term1_os) .* real(term2_os); %product, using oversampled, in real space

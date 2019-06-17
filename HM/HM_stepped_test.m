@@ -2,13 +2,13 @@ close all;
 % Script file to test running oHM
 L = 12*pi; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 64; %number of nodes in each direction
+N = 128; %number of nodes in each direction
 hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
 gamma = 8; %power on laplacian for hyperviscosity term
-kappa = 1/2; %mean density gradient
-alpha = 2; %adiabaticity parameter
-T = 100; %terminal time
-N_time = T*1000; %number of time steps
+kappa = 1; %mean density gradient
+alpha = 5; %adiabaticity parameter
+T = 20; %terminal time
+N_time = T*200; %number of time steps
 dt = T/N_time;
 
 x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
@@ -26,7 +26,7 @@ if is_first_time
 %     init_q = (1)*(sin(init_freq*X).*sin(init_freq*Y/sc)); %random initial condition on q
 %     init_q = (1)*(sin(init_freq*X).*sin(init_freq*Y/sc)) + (1/50)*(rand(size(X))-(1/2)); %random initial condition on q
 %     init_q = 1*ones(size(X));
-    init_q = 1*ones(size(X)) + (1/50)*(rand(size(X))-(1/2));
+    init_q = (1/500)*(rand(size(X))-(1/2));
     init_q_h = reshape(fft2(init_q), [N*N,1]);
     zero_mode = init_q_h(1); init_q_h = init_q_h(2:end); %keep zero mode separate
     
@@ -43,7 +43,7 @@ term_T = init_T + T;
 
 
 % build parameters
-modified = 0; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
+modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 
 %parameter for the noise size, based on IC, want this independent of current soln to be white in time
 if is_first_time
@@ -54,6 +54,7 @@ if is_first_time
         noise_size = (kappa^2)/alpha;
     end
 end
+
 
 params_noise = [sc,noise_size]; %parameters depending on the noise function used
 params_ns = [kappa,sc,zero_mode,modified,params_noise];
@@ -97,7 +98,7 @@ zeta = ifft2(-((k_vals.^2) + ((k_vals').^2)).*phi_h);
 
 
 %%%%%%%%%%%%%%%%%%%% Plotting %%%%%%%%%%%%%%%%%%%%
-n_contours = 10;
+n_contours = 20;
 filled_plot = 0; %flag to do contour filled
 % colormap(parula(n_contours))
 

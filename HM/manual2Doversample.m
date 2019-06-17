@@ -1,4 +1,4 @@
-function data_os = manual2Doversample(data_h,N,M)
+function data_os = manual2Doversample(data_h,N,M,aa_deriv_flag,term_axis)
 % Routine to manually oversample 2D data.
 % Tried nesting calls to interpft but was unable to get it to work
 % Assumes input data is in FFT ordering
@@ -7,6 +7,11 @@ function data_os = manual2Doversample(data_h,N,M)
 %                 Assumes input is in Fourier space, FFT ordering
 %       N -- size of the square array data
 %       M -- number of nodes to use to anti-alias
+%       aa_deriv_flag -- optional flag noting that term1 and term2 are
+%                        derivatives, and we have an even number of modes, 
+%                        so handle the unmatched in oversample
+%       term1_axis -- axis along which differentiation happens for term1
+%       term2_axis -- axis along which differentiation happens for term2
 % Output: data_os -- oversampled 2D array, in real space
 % 
 if M <= N
@@ -29,22 +34,24 @@ else
         first_col = data_h(2:end,1)/2; %repeat this term
         
         %fill corner terms
-%         bigger_array(1,end) = conj(corner_term);
-%         bigger_array(end,1) = conj(corner_term);
         bigger_array(1,end) = corner_term;
         bigger_array(end,1) = corner_term;
         bigger_array(end,end) = corner_term;
         bigger_array(1,1) = corner_term; %divide original by 4
         
         %fill last row and column
-        bigger_array(2:end-1,end) = flip(conj(first_col));
-        bigger_array(end,2:end-1) = flip(conj(first_row));
-%         bigger_array(2:end-1,end) = first_col;
-%         bigger_array(end,2:end-1) = first_row;
         bigger_array(2:end-1,1) = first_col; %divide original by 2
         bigger_array(1,2:end-1) = first_row; %divide original by 2
         
         data_h = bigger_array;
+    end
+    
+    if aa_deriv_flag %replicate unmatched mode with flipped sign
+        if term_axis == 0 %denotes x derivative, flip sign on end column
+            bigger_array(:,end) = -bigger_array(:,end);
+        else %else denotes y derivative, flip sign on last row
+            bigger_array(end,:) = -bigger_array(end,:);
+        end
     end
     
     %now zero pad

@@ -35,7 +35,8 @@ phi_h = -q_h ./ (1 + ((k_vals.^2) + ((k_vals.^2)'))); % consistency, q is potent
 
 % if mHM instead of oHM
 if modified
-    phi_h(1,:) = zeros(size(phi_h(1,:)));
+    phi_h(1,2:end) = -q_h(1,2:end) ./ (k_vals(2:end).^2);
+    phi_h(1,1) = 0;
 end
 
 J_h = nonlin_fn(phi_h,q_h,sc);
@@ -49,7 +50,7 @@ phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 RHS = -J_h + kappa*phi_y_h;
 
 %%% ONLY IF FLUX BALANCED
-% RHS = RHS - ((k_vals.^2) + ((k_vals.^2)')).*q_h;
+RHS = RHS - (5e-4)*((k_vals.^2) + ((k_vals.^2)')).*q_h;
 
 %%% ONLY IF DETERMINISTIC NOISE
 noise = noise_fn(q_h,noise_params); %generate the noise
