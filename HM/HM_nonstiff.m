@@ -31,7 +31,8 @@ q_h = [zero_mode;q_h]; %add zero mode back in for the computation
 N = round(sqrt(length(q_h))); %number of nodes
 q_h = reshape(q_h,[N,N]); %reshape
 k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2)); %wavenumbers
-phi_h = -q_h ./ (1 + ((k_vals.^2) + ((k_vals.^2)'))); % consistency, q is potential vorticity
+full_ks = ((k_vals.^2) + ((k_vals.^2)'));
+phi_h = -q_h ./ (1 + full_ks); % consistency, q is potential vorticity
 
 % if mHM instead of oHM
 if modified
@@ -40,9 +41,9 @@ if modified
 end
 
 J_h = nonlin_fn(phi_h,q_h,sc);
-if rem(N,2) == 0
-    k_vals = fftshift(k_vals); k_vals(1) = 0; k_vals = ifftshift(k_vals);
-end
+% if rem(N,2) == 0
+%     k_vals = fftshift(k_vals); k_vals(1) = 0; k_vals = ifftshift(k_vals);
+% end
 phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 
 
@@ -50,7 +51,7 @@ phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 RHS = -J_h + kappa*phi_y_h;
 
 %%% ONLY IF FLUX BALANCED
-RHS = RHS - (5e-4)*((k_vals.^2) + ((k_vals.^2)')).*q_h;
+RHS = RHS - (5e-4)*full_ks.*q_h;
 
 %%% ONLY IF DETERMINISTIC NOISE
 noise = noise_fn(q_h,noise_params); %generate the noise

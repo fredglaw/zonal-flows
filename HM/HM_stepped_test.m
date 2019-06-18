@@ -4,10 +4,10 @@ L = 12*pi; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
 N = 128; %number of nodes in each direction
 hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
-gamma = 8; %power on laplacian for hyperviscosity term
+gamma = 2*8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 20; %terminal time
+T = 400; %terminal time
 N_time = T*200; %number of time steps
 dt = T/N_time;
 
