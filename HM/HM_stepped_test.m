@@ -2,12 +2,12 @@ close all;
 % Script file to test running oHM
 L = 12*pi; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 128; %number of nodes in each direction
-hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
+N = 64; %number of nodes in each direction
+hype_visc = 7e-19; %hyperviscosity parameter, default 7e-21
 gamma = 2*8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 400; %terminal time
+T = 350; %terminal time
 N_time = T*200; %number of time steps
 dt = T/N_time;
 
@@ -15,7 +15,7 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 [X,Y] = meshgrid(x,x);
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
-is_first_time = 0;
+is_first_time = 1;
 multistep_flag = 1; %flag to see whether to use multistep, AB2BDF2 integrator
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

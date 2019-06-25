@@ -41,9 +41,9 @@ if modified
 end
 
 J_h = nonlin_fn(phi_h,q_h,sc);
-% if rem(N,2) == 0
-%     k_vals = fftshift(k_vals); k_vals(1) = 0; k_vals = ifftshift(k_vals);
-% end
+if rem(N,2) == 0
+    k_vals = fftshift(k_vals); k_vals(1) = 0; k_vals = ifftshift(k_vals);
+end
 phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 
 
