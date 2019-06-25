@@ -1,14 +1,14 @@
 close all; 
 % Script file to test running oHM
-L = 12*pi; %full width of computational box;
+L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
 N = 64; %number of nodes in each direction
-hype_visc = 7e-19; %hyperviscosity parameter, default 7e-21
+hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
 gamma = 2*8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 350; %terminal time
-N_time = T*200; %number of time steps
+T = 1000; %terminal time
+N_time = 2*T*200; %number of time steps
 dt = T/N_time;
 
 x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
@@ -18,6 +18,7 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 is_first_time = 1;
 multistep_flag = 1; %flag to see whether to use multistep, AB2BDF2 integrator
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
+rng(1); %set seed;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if is_first_time
@@ -98,23 +99,23 @@ zeta = ifft2(-((k_vals.^2) + ((k_vals').^2)).*phi_h);
 
 
 %%%%%%%%%%%%%%%%%%%% Plotting %%%%%%%%%%%%%%%%%%%%
-n_contours = 20;
-filled_plot = 0; %flag to do contour filled
+n_contours = 15;
+filled_plot = 1; %flag to do contour filled
 % colormap(parula(n_contours))
 
 
-figure(1);
+figure(1); colormap(jet);
 if filled_plot
-    contourf(X,Y,real(init_q),n_contours); colormap(bone); colorbar;
+    contourf(X,Y,real(init_q),n_contours);  colorbar;
 else
     contour(X,Y,real(init_q),n_contours); colorbar;
 end
 title(['q at T=',num2str(init_T)]);
 
 
-figure(2);
+figure(2); colormap(jet);
 if filled_plot
-    contourf(X,Y,real(q),n_contours); colormap(bone); colorbar;
+    contourf(X,Y,real(q),n_contours); colorbar;
 else
     contour(X,Y,real(q),n_contours); colorbar;
 end
@@ -122,18 +123,18 @@ title(['q at T=',num2str(term_T)]);
 
 
 
-figure(3);
+figure(3); colormap(jet);
 if filled_plot
-    contourf(X,Y,real(init_zeta),n_contours); colormap(bone); colorbar;
+    contourf(X,Y,real(init_zeta),n_contours); colorbar;
 else
     contour(X,Y,real(init_zeta),n_contours); colorbar;
 end
 title(['vorticity at T=',num2str(init_T)]);
 
 
-figure(4); 
+figure(4); colormap(jet);
 if filled_plot
-    contourf(X,Y,real(zeta),n_contours); colormap(bone); colorbar;
+    contourf(X,Y,real(zeta),n_contours); colorbar;
 else
     contour(X,Y,real(zeta),n_contours); colorbar;
 end
