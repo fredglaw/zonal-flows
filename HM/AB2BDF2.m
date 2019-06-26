@@ -1,6 +1,6 @@
 function [u,t] = AB2BDF2(init,T,M,func_noise,func_s,func_nl,params_s,params_nl)
 % Implements the Adams-Bashforth Backward Differentiation Formula 2 method
-% (AB2BDF3), an implicit-explicit multistep, second order accurate method.
+% (AB2BDF2), an implicit-explicit multistep, second order accurate method.
 % 
 %   u_(n+1) = (4/3)u_n - (1/3)u_(n-1) + (2dt/3)A u_(n+1) +...
 %             ...+ (2dt/3) [2B(u_n) - B(u_(n-1))]

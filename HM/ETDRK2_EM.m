@@ -1,6 +1,7 @@
 function [u,t] = ETDRK2_EM(init,T,M,func_noise,func_s,func_nl,params_s,params_nl)
 % Implements the Exponential Time Differencing Runge Kutta 2 method 
-% (AB2BDF3), an explicit one-step, exponential 2nd order integrator.
+% (ETDRK2), an explicit one-step, exponential 2nd order integrator, with
+% Euler-Maruyama(EM) for the noise term
 % 
 %  u_(n+1,*) = exp(A*dt) u_n + F1*B(u_n)              <-- predictor
 %  u_(n+1) = u_(n+1,*) + F2*[B(u_(n+1),*)- B(u_n)]    <-- corrector
@@ -66,18 +67,18 @@ eAdt = expm(A*dt); %compute the full matrix exponentional only once
 [F2,flag] = expm_2sing(A,dt,tol,flag); %update flag
 disp('done with computing F1, F2');
 N = ceil(sqrt(size(u,1))); noise_params = params_nl(5:end);
-
+blank_noise = @(M,y) zeros(M); %empty noise function, need to feed into nonlin
 
 if isdiag(A) %exp(Adt), F1, F2, all diag so  mat-vecs mults become vec-vec mults.
 disp('is diag');
 eAdt = diag(eAdt);
 F1 = diag(F1); F2 = diag(F2);
 	for i=1:M
-        B1 = func_nl(u(:,1),func_noise,@nonlinJ, params_nl); %first nonlinear func eval
+        B1 = func_nl(u(:,1),blank_noise,@nonlinJ, params_nl); %first nonlinear func eval
         predictor = eAdt.*u(:,1) + F1.*B1; %predictor
 
         %second nonlinear func eval and corrector
-        u(:,2) = predictor + F2.*(func_nl(predictor,func_noise,@nonlinJ, params_nl)-B1);
+        u(:,2) = predictor + F2.*(func_nl(predictor,blank_noise,@nonlinJ, params_nl)-B1);
         
         %EM step
         curr_noise = reshape(func_noise(N,noise_params),[N*N,1]);
@@ -88,11 +89,11 @@ F1 = diag(F1); F2 = diag(F2);
 	end
 else %non diagonal, then need to do full matvec
     for i=1:M
-        B1 = func_nl(u(:,1),func_noise,@nonlinJ, params_nl); %first nonlinear func eval
+        B1 = func_nl(u(:,1),blank_noise,@nonlinJ, params_nl); %first nonlinear func eval
         predictor = eAdt*u(:,1) + F1*B1; %predictor
 
         %second nonlinear func eval and corrector
-        u(:,2) = predictor + F2*(func_nl(predictor,func_noise,@nonlinJ, params_nl)-B1);
+        u(:,2) = predictor + F2*(func_nl(predictor,blank_noise,@nonlinJ, params_nl)-B1);
         t(2) = t(1) + dt;
         u(:,1) = u(:,2); t(1) = t(2);
     end

@@ -1,6 +1,6 @@
 function [u,t] = ETDRK2(init,T,M,func_noise,func_s,func_nl,params_s,params_nl)
 % Implements the Exponential Time Differencing Runge Kutta 2 method 
-% (AB2BDF3), an explicit one-step, exponential 2nd order integrator.
+% (ETDRK2), an explicit one-step, exponential 2nd order integrator.
 % 
 %  u_(n+1,*) = exp(A*dt) u_n + F1*B(u_n)              <-- predictor
 %  u_(n+1) = u_(n+1,*) + F2*[B(u_(n+1),*)- B(u_n)]    <-- corrector

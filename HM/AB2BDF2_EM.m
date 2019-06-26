@@ -1,6 +1,7 @@
 function [u,t] = AB2BDF2_EM(init,T,M,func_noise,func_s,func_nl,params_s,params_nl)
 % Implements the Adams-Bashforth Backward Differentiation Formula 2 method
-% (AB2BDF3), an implicit-explicit multistep, second order accurate method.
+% (AB2BDF3), an implicit-explicit multistep, second order accurate method, 
+% with Euler-Maruyama(EM) for the noise term
 % 
 %   u_(n+1) = (4/3)u_n - (1/3)u_(n-1) + (2dt/3)A u_(n+1) +...
 %             ...+ (2dt/3) [2B(u_n) - B(u_(n-1))]
@@ -42,11 +43,13 @@ B_prev = func_nl(u(:,1),func_noise,@nonlinJ,params_nl);
 %manual choice
 noise_params = params_nl(5:end);
 
+blank_noise = @(M,y) zeros(M); %empty noise function, need to feed into nonlin
+
 if isdiag(A)
 disp('is diag');
     B = (1./diag(A)); %SIGNIFICANT SPEED UP when A is diagonal
     for i=1:M
-        B_curr = func_nl(u(:,2),func_noise,@nonlinJ,params_nl); %one nonlin func eval per step
+        B_curr = func_nl(u(:,2),blank_noise,@nonlinJ,params_nl); %one nonlin func eval per step
         %form the rhs of the linear system to solve at this step
         b = (4/3)*u(:,2) - (1/3)*u(:,1) + (2*dt/3)*(2*B_curr - B_prev);
         u(:,3) = B.*b;
@@ -62,7 +65,7 @@ disp('is diag');
     end
 else
     for i=2:M
-        B_curr = func_nl(u(:,2),func_noise,@nonlinJ,params_nl); %one nonlin func eval per step
+        B_curr = func_nl(u(:,2),blank_noise,@nonlinJ,params_nl); %one nonlin func eval per step
         %form the rhs of the linear system to solve at this step
         b = (4/3)*u(:,2) - (1/3)*u(:,1) + (2*dt/3)*(2*B_curr - B_prev);
         u(:,3) = A\b; %solve linear system using preformed matrix

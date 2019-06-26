@@ -7,8 +7,8 @@ hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
 gamma = 2*8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 1000; %terminal time
-N_time = 2*T*200; %number of time steps
+T = 100; %terminal time
+N_time = T*200; %number of time steps
 dt = T/N_time;
 
 x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
@@ -16,12 +16,12 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
 is_first_time = 1;
-multistep_flag = 1; %flag to see whether to use multistep, AB2BDF2 integrator
+multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
-rng(1); %set seed;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if is_first_time
+    rng(1); %set seed;
     init_freq = 1;
     %initial condition
 %     init_q = (1)*(sin(init_freq*X).*sin(init_freq*Y/sc)); %random initial condition on q
@@ -65,11 +65,11 @@ params_s = [hype_visc,gamma,sc];
 if real_noise
     noise_func = @middle_k_noise;
     ab2bdf2 = @AB2BDF2_EM;
-    etdrk2 = @ETDRK2_EM;
+    etdrk = @ETDRK4_EM;
 else
     noise_func = @determ_noise;
     ab2bdf2 = @AB2BDF2;
-    etdrk2 = @ETDRK2;
+    etdrk = @ETDRK4;
 end
 
 %temporal integrator
@@ -79,7 +79,7 @@ if multistep_flag
     both_q_h = [zero_mode zero_mode; both_q_h]; q_h = reshape(both_q_h(:,end),[N,N]); q = ifft2(q_h); %put zero mode back
 else
     %ETDRK2 solution
-    tic; [q_h,~] = etdrk2(init_q_h,T,N_time,noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns); t = toc;
+    tic; [q_h,~] = etdrk(init_q_h,T,N_time,noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns); t = toc;
     q_h = [zero_mode; q_h]; q_h = reshape(q_h,[N,N]); q = ifft2(q_h); %put zero mode back in
 end
 reshape(q_h,[N*N,1]);
@@ -99,12 +99,13 @@ zeta = ifft2(-((k_vals.^2) + ((k_vals').^2)).*phi_h);
 
 
 %%%%%%%%%%%%%%%%%%%% Plotting %%%%%%%%%%%%%%%%%%%%
-n_contours = 15;
+n_contours = 20;
 filled_plot = 1; %flag to do contour filled
-% colormap(parula(n_contours))
+colo = parula;
+colo = jet;
 
 
-figure(1); colormap(jet);
+figure(1); colormap(colo);
 if filled_plot
     contourf(X,Y,real(init_q),n_contours);  colorbar;
 else
@@ -113,17 +114,18 @@ end
 title(['q at T=',num2str(init_T)]);
 
 
-figure(2); colormap(jet);
+figure(2); colormap(colo);
 if filled_plot
     contourf(X,Y,real(q),n_contours); colorbar;
 else
     contour(X,Y,real(q),n_contours); colorbar;
 end
 title(['q at T=',num2str(term_T)]);
+savefig(['full,etdrk4,T',num2str(term_T),'.fig']);
+save(['full,etdrk4,T',num2str(term_T),'.mat'],'q');
 
 
-
-figure(3); colormap(jet);
+figure(3); colormap(colo);
 if filled_plot
     contourf(X,Y,real(init_zeta),n_contours); colorbar;
 else
@@ -132,7 +134,7 @@ end
 title(['vorticity at T=',num2str(init_T)]);
 
 
-figure(4); colormap(jet);
+figure(4); colormap(colo);
 if filled_plot
     contourf(X,Y,real(zeta),n_contours); colorbar;
 else

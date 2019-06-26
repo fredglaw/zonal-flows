@@ -37,7 +37,7 @@ phi_h = -q_h ./ (1 + full_ks); % consistency, q is potential vorticity
 % if mHM instead of oHM
 if modified
     phi_h(1,2:end) = -q_h(1,2:end) ./ (k_vals(2:end).^2);
-    phi_h(1,1) = 0;
+    phi_h(1,1) = 70000;
 end
 
 J_h = nonlin_fn(phi_h,q_h,sc);
@@ -51,10 +51,12 @@ phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 RHS = -J_h + kappa*phi_y_h;
 
 %%% ONLY IF FLUX BALANCED
-RHS = RHS - (5e-4)*full_ks.*q_h;
+phys_dissip_coeff = 5e-4; %default is 5e-4
+RHS = RHS - phys_dissip_coeff*full_ks.*q_h;
 
 %%% ONLY IF DETERMINISTIC NOISE
 noise = noise_fn(q_h,noise_params); %generate the noise
+% noise = zeros(size(noise)); % if you want to zero the noise
 RHS = RHS + noise;
 
 
