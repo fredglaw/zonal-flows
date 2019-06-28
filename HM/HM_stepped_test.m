@@ -4,10 +4,10 @@ L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
 N = 64; %number of nodes in each direction
 hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
-gamma = 2*8; %power on laplacian for hyperviscosity term
+gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 100; %terminal time
+T = 600; %terminal time
 N_time = T*200; %number of time steps
 dt = T/N_time;
 
@@ -121,8 +121,8 @@ else
     contour(X,Y,real(q),n_contours); colorbar;
 end
 title(['q at T=',num2str(term_T)]);
-savefig(['full,etdrk4,T',num2str(term_T),'.fig']);
-save(['full,etdrk4,T',num2str(term_T),'.mat'],'q');
+savefig(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
+save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
 
 
 figure(3); colormap(colo);
@@ -141,7 +141,8 @@ else
     contour(X,Y,real(zeta),n_contours); colorbar;
 end
 title(['vorticity at T=',num2str(term_T)]);
-
+savefig(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
+save(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
 
 
 
