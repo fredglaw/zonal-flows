@@ -20,7 +20,7 @@ N = round(sqrt(length(q_h) + 1)); %number of nodes
 k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2)); %wavenumbers
 k_vals_sq = k_vals.^(2);
 
-coeffs = hype_visc*((1i)^gamma)*((k_vals_sq + (k_vals_sq')).^8); %get stiff coeffs
+coeffs = hype_visc*((-1)^gamma)*((k_vals_sq + (k_vals_sq')).^gamma); %get stiff coeffs
 
 %reshape in N^2 x 1 size, then make the diagonal of an N^2 x N^2 matrix
 temp_coeffs = reshape(coeffs,[N*N,1]);

@@ -2,12 +2,12 @@ close all;
 % Script file to test running oHM
 L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 64; %number of nodes in each direction
-hype_visc = 7e-21; %hyperviscosity parameter, default 7e-21
+N = 256; %number of nodes in each direction
+hype_visc = 5e-25; %hyperviscosity parameter, default 7e-21
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 600; %terminal time
+T = 50; %terminal time
 N_time = T*200; %number of time steps
 dt = T/N_time;
 
@@ -15,9 +15,13 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 [X,Y] = meshgrid(x,x);
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
-is_first_time = 1;
+is_first_time = 0;
 multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
+% note in reality will want to use white noise, deterministic forcing
+% simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
+saver = 1; %flag to see whether or not to save q data + zeta figure
+modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if is_first_time
@@ -42,9 +46,6 @@ end
 
 term_T = init_T + T;
 
-
-% build parameters
-modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 
 %parameter for the noise size, based on IC, want this independent of current soln to be white in time
 if is_first_time
@@ -121,9 +122,9 @@ else
     contour(X,Y,real(q),n_contours); colorbar;
 end
 title(['q at T=',num2str(term_T)]);
-savefig(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
-save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
-
+if saver
+    save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+end
 
 figure(3); colormap(colo);
 if filled_plot
@@ -141,8 +142,9 @@ else
     contour(X,Y,real(zeta),n_contours); colorbar;
 end
 title(['vorticity at T=',num2str(term_T)]);
-savefig(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
-save(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+if saver
+    savefig(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
+end
 
 
 
@@ -165,25 +167,3 @@ else
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%% Local Functions %%%%%%%%%%%%%%%%%%%%
-function RHS = rhs23s_long(u,noise_fn,stiff_fn,nonstiff_fn,params_s,params_ns)
-% Subroutine to wrap our function handles into the built-in ode23s solver
-% 
-% Args: u -- current in the ODE solver
-%       noise_fn -- noise function handle
-%       stiff_fn -- stiff function handle
-%       nonstiff_fn -- nonstiff function handle
-%       params_s -- parameters for stiff function handle
-%       params_ns -reshape(q_h,[N*N,1]); init_q_h = init_q_h(2:end); - parameters for nonstiff function handle
-% Output: RHS -- RHS of the HM equation
-% 
-A = stiff_fn(u,params_s); %sparse, large stiff matrix
-RHS = A*u + nonstiff_fn(u,noise_fn,@nonlinJ,params_ns);
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
