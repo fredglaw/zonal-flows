@@ -51,8 +51,10 @@ phi_y_h = (1i*phi_h.*(k_vals')); %left broadcasting for y-derivs
 RHS = -J_h + kappa*phi_y_h;
 
 %%% ONLY IF FLUX BALANCED
-phys_dissip_coeff = 5e-4; %default is 5e-4
-RHS = RHS - phys_dissip_coeff*full_ks.*q_h;
+if modified
+    phys_dissip_coeff = 5e-4; %default is 5e-4
+    RHS = RHS - phys_dissip_coeff*full_ks.*q_h;
+end
 
 %%% ONLY IF DETERMINISTIC NOISE
 noise = noise_fn(q_h,noise_params); %generate the noise

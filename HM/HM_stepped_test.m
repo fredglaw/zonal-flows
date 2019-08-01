@@ -1,13 +1,24 @@
 close all; 
-% Script file to test running oHM
+% Script file to simulate HM. To run the simulation we only need to
+% keep running this script. Key flags are:
+%       is_first_time -- 1 if first time running, 0 otherwise
+%       multistep_flag -- 1 is AB2BDF2 (multistep), 0 is ETDRK4
+%       real_noise -- 1 is true white noise (SDE solve), 0 is SUF-HM 
+%       saver -- 1 means to save q data + vorticity plots, 0 is to not
+%       modified -- 1 means mHM, 0 means oHM (with extra Laplacian dissipation)
+% 
+% Hyperviscosity tuning: N=64   <-->  hype_visc = 7e-23
+%                        N=128  <-->  hype_visc = 7e-23
+%                        N=256  <-->  hype_visc = 5e-25
+% 
 L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 256; %number of nodes in each direction
-hype_visc = 5e-25; %hyperviscosity parameter, default 7e-21
+N = 64; %number of nodes in each direction
+hype_visc = 5e-25; %hyperviscosity parameter, default 7e-23
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 50; %terminal time
+T = 1500; %terminal time
 N_time = T*200; %number of time steps
 dt = T/N_time;
 
@@ -15,13 +26,13 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 [X,Y] = meshgrid(x,x);
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
-is_first_time = 0;
+is_first_time = 1;
 multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % note in reality will want to use white noise, deterministic forcing
 % simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
 saver = 1; %flag to see whether or not to save q data + zeta figure
-modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
+modified = 0; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if is_first_time
@@ -123,7 +134,11 @@ else
 end
 title(['q at T=',num2str(term_T)]);
 if saver
-    save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+    if modified
+        save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+    else
+        save(['oHM,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+    end
 end
 
 figure(3); colormap(colo);
@@ -143,7 +158,11 @@ else
 end
 title(['vorticity at T=',num2str(term_T)]);
 if saver
-    savefig(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
+    if modified
+        savefig(['full,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
+    else
+        savefig(['oHM,zeta,etdrk4,T',num2str(term_T),',N',num2str(N),'.fig']);
+    end  
 end
 
 
