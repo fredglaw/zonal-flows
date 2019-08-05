@@ -5,7 +5,6 @@ close all;
 % development of the zones through the time series as time goes on.
 % 
 % To run the simulation we only need to keep running this script. Key flags are:
-%       is_first_time -- 1 if first time running, 0 otherwise
 %       multistep_flag -- 1 is AB2BDF2 (multistep), 0 is ETDRK4
 %       real_noise -- 1 is true white noise (SDE solve), 0 is SUF-HM 
 %       saver -- 1 means to save q data + vorticity plots, 0 is to not
@@ -17,12 +16,12 @@ close all;
 % 
 L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 64; %number of nodes in each direction
-hype_visc = 7e-23; %hyperviscosity parameter, default 7e-23
+N = 256; %number of nodes in each direction
+hype_visc = 5e-25; %hyperviscosity parameter, default 7e-23
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-final_T = 1200;
+final_T = 1400;
 T = 5; %time increment to simulate with 
 N_time = T*200; %number of time steps
 dt = T/N_time;
@@ -31,12 +30,11 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 [X,Y] = meshgrid(x,x);
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
-is_first_time = 1; %in this context, always first time
 multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % note in reality will want to use white noise, deterministic forcing
 % simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
-saver = 0; %flag to see whether or not to save q data + zeta figure
+saver = 1; %flag to see whether or not to save ZAFTS
 modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -117,7 +115,7 @@ for i=1:round(final_T/T)
                  reshape(fft2(real(ifft2(reshape(both_q_h(:,2),[N,N])))),[N*N,1])];
              init_q_h = init_q_h(2:end,:);
         else
-            init_q_h = reshape(fft2(q),[N*N,1]);
+            init_q_h = reshape(fft2(real(q)),[N*N,1]);
             init_q_h = init_q_h(2:end);
         end
     else
@@ -125,7 +123,7 @@ for i=1:round(final_T/T)
     end
     %%%%%%
     
-    ZAMFTS(:,1) = get_zamf(phi_h,sc);%update ZAMFTS
+    ZAMFTS(:,i) = get_zamf(phi_h,sc);%update ZAMFTS
 
 end
 t=toc;
@@ -143,6 +141,11 @@ figure(1);
 contourf(T_ts,X_ts,real(ZAMFTS),n_contours); colorbar;
 title(['ZAMFTS at T=',num2str(init_T)]);
 
+
+if saver
+    savefig(['ZAFTS,T',num2str(term_T),',N',num2str(N),'.fig']);
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -154,6 +157,8 @@ function zamf = get_zamf(phi_h,sc)
 N = size(phi_h,1);
 k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2));
 zamf = (ifft(1i*k_vals.*phi_h(1,:))/N)';
+% zamf = (ifft(phi_h(1,:))/N)';
+
 % top row of phi_h encodes the zonally averaged ES potential. We spectrally
 % differentiate, and divide by N to account for ifft instead of ifft2
 end

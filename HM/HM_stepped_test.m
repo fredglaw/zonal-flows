@@ -178,7 +178,7 @@ if isnan(max(max(abs(imag(q))))) == 0
              reshape(fft2(real(ifft2(reshape(both_q_h(:,2),[N,N])))),[N*N,1])];
          init_q_h = init_q_h(2:end,:);
     else
-        init_q_h = reshape(fft2(q),[N*N,1]);
+        init_q_h = reshape(fft2(real(q)),[N*N,1]);
         init_q_h = init_q_h(2:end);
     end
 else
