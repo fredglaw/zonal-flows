@@ -11,17 +11,17 @@ close all;
 %       modified -- 1 means mHM, 0 means oHM (with extra Laplacian dissipation)
 % 
 % Hyperviscosity tuning: N=64   <-->  hype_visc = 7e-23
-%                        N=128  <-->  hype_visc = 7e-23
+%                        N=128  <-->  hype_visc = 7e-23 or 5e-25
 %                        N=256  <-->  hype_visc = 5e-25
 % 
 L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 256; %number of nodes in each direction
+N = 128; %number of nodes in each direction
 hype_visc = 5e-25; %hyperviscosity parameter, default 7e-23
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-final_T = 1400;
+final_T = 1200;
 T = 5; %time increment to simulate with 
 N_time = T*200; %number of time steps
 dt = T/N_time;
@@ -34,7 +34,8 @@ multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % note in reality will want to use white noise, deterministic forcing
 % simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
-saver = 1; %flag to see whether or not to save ZAFTS
+saver_ZAFTS = 0; %flag to see whether or not to save ZAFTS
+saver_KE = 1; %flag to see whether or not to save TKETS and ZKETS
 modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -79,10 +80,11 @@ k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2)); %wavenumbers
 
 
 ZAMFTS = zeros(N,round(final_T/T)); %Zonally Averaged Mean Flow Time Series
+TKETS = zeros(1,round(final_T/T)); %Kinetic Energy Time Series (total)
+ZKETS = zeros(1,round(final_T/T)); %Kinetic Energy Time Series (zonal modes)
 
-init_phi_h = -reshape([zero_mode;init_q_h(:,end)],[N,N]) ./ (1 + (k_vals.^2) + ((k_vals').^2)); % get the vorticity
+% init_phi_h = -reshape([zero_mode;init_q_h(:,end)],[N,N]) ./ (1 + (k_vals.^2) + ((k_vals').^2)); % get the vorticity
 
-% ZAMFTS(1,:) = get_zamf(init_phi_h,sc);
 
 tic;
 %temporal integrator
@@ -123,8 +125,8 @@ for i=1:round(final_T/T)
     end
     %%%%%%
     
-    ZAMFTS(:,i) = get_zamf(phi_h,sc);%update ZAMFTS
-
+    ZAMFTS(:,i) = get_zamf(phi_h,sc); %update ZAMFTS
+    [TKETS(i), ZKETS(i)] = get_KE(phi_h,sc); %update TKETS,ZKETS
 end
 t=toc;
 disp(['Integrating forward to T=',num2str(final_T),' with dt=',num2str(dt),' took t=',num2str(t),' seconds']);
@@ -141,9 +143,18 @@ figure(1);
 contourf(T_ts,X_ts,real(ZAMFTS),n_contours); colorbar;
 title(['ZAMFTS at T=',num2str(init_T)]);
 
-
-if saver
+if saver_ZAFTS
     savefig(['ZAFTS,T',num2str(term_T),',N',num2str(N),'.fig']);
+end
+
+figure(2);
+plot(linspace(T,final_T,round(final_T/T)),TKETS,'LineWidth',2); hold on;
+plot(linspace(T,final_T,round(final_T/T)),ZKETS,'LineWidth',2);
+legend('total kinetic energy', 'kinetic energy in zonal state')
+title('time series for kinetic energy')
+
+if saver_KE
+    savefig(['KETS,T',num2str(term_T),',N',num2str(N),'.fig']);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -163,6 +174,16 @@ zamf = (ifft(1i*k_vals.*phi_h(1,:))/N)';
 % differentiate, and divide by N to account for ifft instead of ifft2
 end
 
+function [KE_tot,KE_zonal] = get_KE(phi_h,sc)
+% Subroutine to integrate the kinetic energy of the current state given the
+% current ES potential in Fourier space. 
+N = size(phi_h,1);
+k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2));
+k_sq = k_vals.^2 + (k_vals.^2)';
+E_vals = k_sq .* (abs(phi_h).^2);
+KE_zonal = sum(E_vals(1,:));
+KE_tot = sum(sum(E_vals));
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
