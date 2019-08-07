@@ -32,7 +32,7 @@ multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
 saver = 1; %flag to see whether or not to save q data + zeta figure
-modified = 0; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
+modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if is_first_time
@@ -103,9 +103,18 @@ disp(['largest imag value is ',num2str(max(max(abs(imag(q)))))]);
 k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2)); %wavenumbers
 
 init_phi_h = -reshape([zero_mode;init_q_h(:,end)],[N,N]) ./ (1 + (k_vals.^2) + ((k_vals').^2)); % get the vorticity
+if modified
+    temp_qh = -reshape([zero_mode;init_q_h(:,end)],[N,N]);
+    init_phi_h(1,2:end) = temp_qh(1,2:end) ./ (k_vals(2:end).^2);
+    init_phi_h(1,1) = 0;
+end
 init_zeta = ifft2(-((k_vals.^2) + ((k_vals').^2)).*init_phi_h);
 
 phi_h = - q_h ./ (1 + (k_vals.^2) + ((k_vals').^2));
+if modified
+    phi_h(1,2:end) = -q_h(1,2:end) ./ (k_vals(2:end).^2);
+    phi_h(1,1) = 0;
+end
 zeta = ifft2(-((k_vals.^2) + ((k_vals').^2)).*phi_h);
 
 

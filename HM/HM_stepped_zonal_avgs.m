@@ -105,6 +105,10 @@ for i=1:round(final_T/T)
     disp(['largest imag value is ',num2str(max(max(abs(imag(q)))))]);
 
     phi_h = - q_h ./ (1 + (k_vals.^2) + ((k_vals').^2));
+    if modified
+        phi_h(1,2:end) = -q_h(1,2:end) ./ (k_vals(2:end).^2);
+        phi_h(1,1) = 0;
+    end
 
     if isnan(max(max(abs(imag(q))))) == 0 %check for blow up
         %update initial and terminal times
@@ -125,7 +129,7 @@ for i=1:round(final_T/T)
     end
     %%%%%%
     
-    ZAMFTS(:,i) = get_zamf(phi_h,sc); %update ZAMFTS
+%     ZAMFTS(:,i) = get_zamf(phi_h,sc); %update ZAMFTS
     [TKETS(i), ZKETS(i)] = get_KE(phi_h,sc); %update TKETS,ZKETS
 end
 t=toc;
@@ -139,13 +143,13 @@ colo = parula;
 colo = jet;
 [T_ts,X_ts] = meshgrid(linspace(T,final_T,round(final_T/T)),x);
 
-figure(1);
-contourf(T_ts,X_ts,real(ZAMFTS),n_contours); colorbar;
-title(['ZAMFTS at T=',num2str(init_T)]);
-
-if saver_ZAFTS
-    savefig(['ZAFTS,T',num2str(term_T),',N',num2str(N),'.fig']);
-end
+% figure(1);
+% contourf(T_ts,X_ts,real(ZAMFTS),n_contours); colorbar;
+% title(['ZAMFTS at T=',num2str(init_T)]);
+% 
+% if saver_ZAFTS
+%     savefig(['ZAFTS,T',num2str(term_T),',N',num2str(N),'.fig']);
+% end
 
 figure(2);
 plot(linspace(T,final_T,round(final_T/T)),TKETS,'LineWidth',2); hold on;
