@@ -21,7 +21,7 @@ hype_visc = 5e-25; %hyperviscosity parameter, default 7e-23
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-final_T = 1200;
+final_T = 1000;
 T = 5; %time increment to simulate with 
 N_time = T*200; %number of time steps
 dt = T/N_time;
@@ -43,9 +43,14 @@ modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%% INITIAL SETUP / PARAMS FOR THE SIM %%%%%%%%%%%%%%%%%%%
 rng(1); %set seed;
 init_freq = 1; init_T = 0;
-%initial condition
-init_q = (1/500)*(rand(size(X))-(1/2));
-init_q_h = reshape(fft2(init_q), [N*N,1]);
+
+% % small in real space IC
+% init_q = (1/500)*(rand(size(X))-(1/2));
+% init_q_h = reshape(fft2(init_q), [N*N,1]);
+
+% small in Fourier domain IC
+init_q_h = reshape(fft2(real(ifft2((1/500)*(rand(size(X))-(1/2))))), [N*N,1]);
+
 zero_mode = init_q_h(1); init_q_h = init_q_h(2:end); %keep zero mode separate
     
 if multistep_flag
@@ -54,8 +59,13 @@ end
 
 %parameter for the noise size, based on IC, want this independent of current soln to be white in time
 if real_noise
-	noise_size = 1/sqrt(2*dt);
-	noise_size = noise_size*(norm(init_q(:,end))*(L/N))*(1e-8);
+	k_f = N/2;
+    dk = k_f/8;
+    k_vals = -ceil((N-1)/2):floor((N-1)/2); k_sq = k_vals.^2;
+    k_full = k_sq + (k_sq');
+    annulus_index = (k_full < (k_f + dk)^2) && (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
+    noise_size = 1/sqrt(sum(annulus_index)*dt);
+    params_noise = [noise_size;reshape(annulus_index,[N*N, 1])];
 else
     noise_size = (kappa^2)/alpha;
 end
@@ -66,9 +76,9 @@ params_s = [hype_visc,gamma,sc];
 
 %pick noise function
 if real_noise
-    noise_func = @middle_k_noise;
+    noise_func = @annulus_noise;
     ab2bdf2 = @AB2BDF2_EM;
-    etdrk = @ETDRK4_EM;
+    etdrk = @ETDRK4_dcorr;
 else
     noise_func = @determ_noise;
     ab2bdf2 = @AB2BDF2;
@@ -95,7 +105,7 @@ for i=1:round(final_T/T)
         [both_q_h,~] = ab2bdf2(init_q_h,T,N_time,noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns);
         both_q_h = [zero_mode zero_mode; both_q_h]; q_h = reshape(both_q_h(:,end),[N,N]); q = ifft2(q_h); %put zero mode back
     else
-        %ETDRK2 solution
+        %ETDRK4 solution
         [q_h,~] = etdrk(init_q_h,T,N_time,noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns);
         q_h = [zero_mode; q_h]; q_h = reshape(q_h,[N,N]); q = ifft2(q_h); %put zero mode back in
     end
@@ -178,15 +188,31 @@ zamf = (ifft(1i*k_vals.*phi_h(1,:))/N)';
 % differentiate, and divide by N to account for ifft instead of ifft2
 end
 
+% function [KE_tot,KE_zonal] = get_KE(phi_h,sc)
+% % Subroutine to integrate the kinetic energy of the current state given the
+% % current ES potential in Fourier space. 
+% N = size(phi_h,1);
+% k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2));
+% k_sq = k_vals.^2 + (k_vals.^2)';
+% E_vals = k_sq .* (abs(phi_h).^2);
+% KE_zonal = sum(E_vals(1,:));
+% KE_tot = sum(sum(E_vals));
+% end
+
+%version which does in real space
 function [KE_tot,KE_zonal] = get_KE(phi_h,sc)
 % Subroutine to integrate the kinetic energy of the current state given the
 % current ES potential in Fourier space. 
 N = size(phi_h,1);
 k_vals = (1/sc)*ifftshift(-ceil((N-1)/2):floor((N-1)/2));
-k_sq = k_vals.^2 + (k_vals.^2)';
-E_vals = k_sq .* (abs(phi_h).^2);
-KE_zonal = sum(E_vals(1,:));
-KE_tot = sum(sum(E_vals));
+phi_y_h = (1i*phi_h.*(k_vals')); %row broadcasting for y-derivs
+phi_x_h = (1i*(k_vals .* phi_h)); %column broadcasting for x-derivs
+phi_x = ifft2(phi_x_h)*N; phi_y = ifft2(phi_y_h)*N;
+z_phi_x = ifft2(phi_x_h .* [1;zeros(N-1,1)])*N; z_phi_y = ifft2(phi_y_h.*[1;zeros(N-,1)])*N;
+E_vals = abs(phi_x).^2 + abs(phi_y).^2;
+z_E_vals = abs(z_phi_x).^2 + abs(z_phi_y).^2;
+KE_zonal = ((40/N)^2)*sum(sum(z_E_vals));
+KE_tot = ((40/N)^2)*sum(sum(E_vals));
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

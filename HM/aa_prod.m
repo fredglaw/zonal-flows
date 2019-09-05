@@ -31,7 +31,9 @@ term2_os = manual2Doversample(term2_h,N,M,aa_deriv_flag,term2_axis);
 
 %since our data is real, we enforce real
 prod_os = real(term1_os) .* real(term2_os); %product, using oversampled, in real space
-prod_os_h = ((N/M)^2)*fft2(prod_os); %product in Fourier space, oversampled
+% prod_os_h = ((N/M)^2)*fft2(prod_os); %product in Fourier space, oversampled
+prod_os_h = ((N/M)^2)*fft2(prod_os)/N; %product in Fourier space, oversampled, for balanced normalization
+
 
 % extract the correct indices
 % prod_h = zeros(size(term1_h));

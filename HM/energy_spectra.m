@@ -29,8 +29,8 @@ multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % note in reality will want to use white noise, deterministic forcing
 % simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
-saver_slice = 1; %flag to see whether or not to save the slice spectra
-saver_equil = 1; %flag to see whether or not to save the equilibrium spectra
+saver_slice = 0; %flag to see whether or not to save the slice spectra
+saver_equil = 0; %flag to see whether or not to save the equilibrium spectra
 modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -38,9 +38,18 @@ modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%% INITIAL SETUP / PARAMS FOR THE SIM %%%%%%%%%%%%%%%%%%%
 rng(1); %set seed;
 init_freq = 1; init_T = 0;
-%initial condition
-init_q = (1/500)*(rand(size(X))-(1/2));
-init_q_h = reshape(fft2(init_q), [N*N,1]);
+
+% % small in real space IC
+% init_q = (1/500)*(rand(size(X))-(1/2));
+% init_q_h = reshape(fft2(init_q), [N*N,1]);
+
+% small in Fourier domain IC
+% init_q_h = reshape(fft2(real(ifft2((1/500)*(rand(size(X))-(1/2))))), [N*N,1]);
+
+%BALANCED NORMALIZATION FOR ENERGY
+init_q_h = reshape(fft2(real(ifft2((1/500)*(rand(size(X))-(1/2))))), [N*N,1])/N;
+
+
 zero_mode = init_q_h(1); init_q_h = init_q_h(2:end); %keep zero mode separate
     
 if multistep_flag
@@ -49,8 +58,13 @@ end
 
 %parameter for the noise size, based on IC, want this independent of current soln to be white in time
 if real_noise
-	noise_size = 1/sqrt(2*dt);
-	noise_size = noise_size*(norm(init_q(:,end))*(L/N))*(1e-8);
+	k_f = N/2;
+    dk = k_f/8;
+    k_vals = -ceil((N-1)/2):floor((N-1)/2); k_sq = k_vals.^2;
+    k_full = k_sq + (k_sq');
+    annulus_index = (k_full < (k_f + dk)^2) && (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
+    noise_size = 1/sqrt(sum(annulus_index)*dt);
+    params_noise = [noise_size;reshape(annulus_index,[N*N, 1])];
 else
     noise_size = (kappa^2)/alpha;
 end
@@ -61,9 +75,9 @@ params_s = [hype_visc,gamma,sc];
 
 %pick noise function
 if real_noise
-    noise_func = @middle_k_noise;
+    noise_func = @annulus_noise;
     ab2bdf2 = @AB2BDF2_EM;
-    etdrk = @ETDRK4_EM;
+    etdrk = @ETDRK4_dcorr;
 else
     noise_func = @determ_noise;
     ab2bdf2 = @AB2BDF2;
@@ -94,11 +108,15 @@ for i=1:length(T_slices)
     if multistep_flag
         %AB2BDF2 solution
         [both_q_h,~] = ab2bdf2(init_q_h,T_slices(i),N_slices(i),noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns);
-        both_q_h = [zero_mode zero_mode; both_q_h]; q_h = reshape(both_q_h(:,end),[N,N]); q = ifft2(q_h); %put zero mode back
+        both_q_h = [zero_mode zero_mode; both_q_h]; q_h = reshape(both_q_h(:,end),[N,N]); 
+%         q = ifft2(q_h); %put zero mode back
+        q = ifft2(q_h)*N; %BALANCED NORMALIZATION FOR ENERGY
     else
         %ETDRK2 solution
         [q_h,~] = etdrk(init_q_h,T_slices(i),N_slices(i),noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns);
-        q_h = [zero_mode; q_h]; q_h = reshape(q_h,[N,N]); q = ifft2(q_h); %put zero mode back in
+        q_h = [zero_mode; q_h]; q_h = reshape(q_h,[N,N]); 
+%         q = ifft2(q_h); %put zero mode back in
+        q = ifft2(q_h)*N; %BALANCED NORMALIZATION FOR ENERGY
     end
     reshape(q_h,[N*N,1]); term_T = init_T + T_slices(i);
     % disp(['Integrating forward by T=',num2str(T),' with M=',num2str(N_time),' steps took t=',num2str(t),' seconds']);
@@ -119,10 +137,10 @@ for i=1:length(T_slices)
         if multistep_flag
     %         init_q_h = both_q_h(2:end,:);
              init_q_h = [reshape(fft2(real(ifft2(reshape(both_q_h(:,1),[N,N])))),[N*N,1]),...
-                 reshape(fft2(real(ifft2(reshape(both_q_h(:,2),[N,N])))),[N*N,1])];
+                 reshape(fft2(real(ifft2(reshape(both_q_h(:,2),[N,N])))),[N*N,1])]/N;
              init_q_h = init_q_h(2:end,:);
         else
-            init_q_h = reshape(fft2(real(q)),[N*N,1]);
+            init_q_h = reshape(fft2(real(q)),[N*N,1])/N;
             init_q_h = init_q_h(2:end);
         end
     else
@@ -142,11 +160,15 @@ for i=1:round((final_T-sum(T_slices))/T)
     if multistep_flag
         %AB2BDF2 solution
         [both_q_h,~] = ab2bdf2(init_q_h,T,N_time,noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns);
-        both_q_h = [zero_mode zero_mode; both_q_h]; q_h = reshape(both_q_h(:,end),[N,N]); q = ifft2(q_h); %put zero mode back
+        both_q_h = [zero_mode zero_mode; both_q_h]; q_h = reshape(both_q_h(:,end),[N,N]); 
+%         q = ifft2(q_h); %put zero mode back
+        q = ifft2(q_h)*N; %BALANCED NORMALIZATION FOR ENERGY
     else
         %ETDRK2 solution
         [q_h,~] = etdrk(init_q_h,T,N_time,noise_func,@HM_stiff,@HM_nonstiff,params_s,params_ns);
-        q_h = [zero_mode; q_h]; q_h = reshape(q_h,[N,N]); q = ifft2(q_h); %put zero mode back in
+        q_h = [zero_mode; q_h]; q_h = reshape(q_h,[N,N]); 
+%         q = ifft2(q_h); %put zero mode back in
+        q = ifft2(q_h)*N; %BALANCED NORMALIZATION FOR ENERGY
     end
     reshape(q_h,[N*N,1]); term_T = init_T + T;
     % disp(['Integrating forward by T=',num2str(T),' with M=',num2str(N_time),' steps took t=',num2str(t),' seconds']);
@@ -167,10 +189,10 @@ for i=1:round((final_T-sum(T_slices))/T)
         if multistep_flag
     %         init_q_h = both_q_h(2:end,:);
              init_q_h = [reshape(fft2(real(ifft2(reshape(both_q_h(:,1),[N,N])))),[N*N,1]),...
-                 reshape(fft2(real(ifft2(reshape(both_q_h(:,2),[N,N])))),[N*N,1])];
+                 reshape(fft2(real(ifft2(reshape(both_q_h(:,2),[N,N])))),[N*N,1])]/N;
              init_q_h = init_q_h(2:end,:);
         else
-            init_q_h = reshape(fft2(real(q)),[N*N,1]);
+            init_q_h = reshape(fft2(real(q)),[N*N,1])/N;
             init_q_h = init_q_h(2:end);
         end
     else

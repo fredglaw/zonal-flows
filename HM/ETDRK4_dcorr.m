@@ -1,7 +1,8 @@
-function [u,t] = ETDRK4_EM(init,T,M,func_noise,func_s,func_nl,params_s,params_nl)
+function [u,t] = ETDRK4_dcorr(init,T,M,func_noise,func_s,func_nl,params_s,params_nl)
 % Implements the Exponential Time Differencing Runge Kutta 4 method 
-% (ETDRK4), an explicit one-step, exponential 4th order integrator, with
-% Euler-Maruyama(EM) for the noise term
+% (ETDRK4), an explicit one-step, exponential 4th order integrator, with a
+% white noise forcing. Details on the size of the forcing can be found in
+% Appendix A of 'Zonostrophic Instability' by Srivasan and Young
 
 % Designed to solve stiff ODE of the form du/dt = Au + B(u,t)
 % 
@@ -52,28 +53,36 @@ A = diag(A); %since system is diagonal, only save this
 E1 = exp(h*A); E2 = exp(h*A/2); %exponentials we will reuse
 disp('contour integral precomps done')
 
-blank_noise = @(M,y) zeros(M); %empty noise function, need to feed into nonlin
+blank_noise = @(M,y) zeros(size(M)); %empty noise function, need to feed into nonlin
+N = ceil(sqrt(length(init)));
 
 % main solver loop
+noise_params = params_nl(5:end);
+old_noise = reshape(func_noise(N,noise_params),[N*N,1]); %get the current noise
+old_noise(1) = []; %delete noise on zeroth mode
+
+%at each step, we generate the real noise independently of the RHS
+%function, pass in a blank anonymous function (could be sped up with a
+%flag). We then linearly interpret the noise on the time step for the RK
+%solver
 for i=1:M
+    curr_noise = reshape(func_noise(N,noise_params),[N*N, 1]); %get noise at the next step
+    curr_noise(1) = []; %delete noise on zeroth mode
     curr_u = u(:,1); %get current solution
-    B_init = func_nl(curr_u,blank_noise,@nonlinJ,params_nl);
+    B_init = func_nl(curr_u,blank_noise,@nonlinJ,params_nl) + old_noise;
     a = E2.*curr_u + Q.*B_init;
-    B_a = func_nl(a,blank_noise,@nonlinJ,params_nl);
+    B_a = func_nl(a,blank_noise,@nonlinJ,params_nl) + (1/2)*(old_noise + curr_noise);
     b = E2.*curr_u + Q.*B_a;
-    B_b = func_nl(b,blank_noise,@nonlinJ,params_nl);
+    B_b = func_nl(b,blank_noise,@nonlinJ,params_nl) + (1/2)*(old_noise + curr_noise);
     c = E2.*curr_u + Q.*(2*B_b - B_init);
-    B_c = func_nl(c,blank_noise,@nonlinJ,params_nl);
+    B_c = func_nl(c,blank_noise,@nonlinJ,params_nl) + curr_noise;
     
     %update
     u(:,2) = E1.*curr_u + F1.*B_init + 2*F2.*(B_a + B_b) + F3.*B_c;
     
-    %EM step
-    curr_noise = reshape(func_noise(N,noise_params),[N*N,1]);
-	u(:,2) = u(:,2) + dt*curr_noise(2:end);
-    
     t(2) = t(1) + h;
     u(:,1) = u(:,2); t(1) = t(2);
+    old_noise = curr_noise;
 end
 u = u(:,end); t = t(end);
 end

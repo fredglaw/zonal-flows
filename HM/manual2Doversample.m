@@ -62,7 +62,8 @@ else
         data_h = padarray(data_h,[1,1],0,'pre');
     end
     data_h = ifftshift(data_h); %inverse shift
-    data_os = (((M/N))^2)*ifft2(data_h);
+%     data_os = (((M/N))^2)*ifft2(data_h);
+    data_os = (((M/N))^2)*ifft2(data_h*N); %for balanced normalization
 end
 
 
