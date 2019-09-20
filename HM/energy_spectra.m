@@ -62,14 +62,16 @@ if real_noise
     dk = k_f/8;
     k_vals = -ceil((N-1)/2):floor((N-1)/2); k_sq = k_vals.^2;
     k_full = k_sq + (k_sq');
-    annulus_index = (k_full < (k_f + dk)^2) && (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
-    noise_size = 1/sqrt(sum(annulus_index)*dt);
-    params_noise = [noise_size;reshape(annulus_index,[N*N, 1])];
+    annulus_index = (k_full < (k_f + dk)^2) & (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
+%         eps_param = 1/(2*(k_f^2));
+    eps_param = 1/(2*(k_f^2)) * 1e3;
+    noise_size = sqrt(2*eps_param*(k_f^2) / (sum(sum(annulus_index))*dt));
+    params_noise = [noise_size,reshape(annulus_index,[1, N*N])];
 else
     noise_size = (kappa^2)/alpha;
+    params_noise = [sc,noise_size];
 end
 
-params_noise = [sc,noise_size]; %parameters depending on the noise function used
 params_ns = [kappa,sc,zero_mode,modified,params_noise];
 params_s = [hype_visc,gamma,sc];
 

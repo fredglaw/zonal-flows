@@ -21,7 +21,7 @@ hype_visc = 7e-23; %hyperviscosity parameter, default 7e-23
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-final_T = 1300;
+final_T = 1400;
 T = 5; %time increment to simulate with 
 N_time = T*200; %number of time steps
 dt = T/N_time;
@@ -35,7 +35,7 @@ multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % simply mimics the effect of the 2-field model HW
 real_noise = 0; %flag to see whether to use white noise, or determinisitic forcing
 saver_ZAFTS = 0; %flag to see whether or not to save ZAFTS
-saver_KE = 1; %flag to see whether or not to save TKETS and ZKETS
+saver_KE = 0; %flag to see whether or not to save TKETS and ZKETS
 modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -63,14 +63,17 @@ if real_noise
     dk = k_f/8;
     k_vals = -ceil((N-1)/2):floor((N-1)/2); k_sq = k_vals.^2;
     k_full = k_sq + (k_sq');
-    annulus_index = (k_full < (k_f + dk)^2) && (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
-    noise_size = 1/sqrt(sum(annulus_index)*dt);
-    params_noise = [noise_size;reshape(annulus_index,[N*N, 1])];
+    annulus_index = (k_full < (k_f + dk)^2) & (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
+%         eps_param = 1/(2*(k_f^2));
+    eps_param = 1/(2*(k_f^2)) * 1e2;
+    noise_size = sqrt(2*eps_param*(k_f^2) / (sum(sum(annulus_index))*dt));
+    params_noise = [noise_size,reshape(annulus_index,[1, N*N])];
 else
     noise_size = (kappa^2)/alpha;
+    params_noise = [sc,noise_size];
 end
 
-params_noise = [sc,noise_size]; %parameters depending on the noise function used
+
 params_ns = [kappa,sc,zero_mode,modified,params_noise];
 params_s = [hype_visc,gamma,sc];
 
@@ -141,7 +144,7 @@ for i=1:round(final_T/T)
     end
     %%%%%%
     
-%     ZAMFTS(:,i) = get_zamf(phi_h,sc); %update ZAMFTS
+    ZAMFTS(:,i) = get_zamf(phi_h,sc); %update ZAMFTS
     [TKETS(i), ZKETS(i)] = get_KE(phi_h,sc); %update TKETS,ZKETS
     [TKETS_trap(i), ZKETS_trap(i)] = get_KE_trap(phi_h,sc); %update TKETS_trap,ZKETS_trap
 end
@@ -156,13 +159,14 @@ colo = parula;
 colo = jet;
 [T_ts,X_ts] = meshgrid(linspace(T,final_T,round(final_T/T)),x);
 
-% figure(1);
-% contourf(T_ts,X_ts,real(ZAMFTS),n_contours); colorbar;
-% title(['ZAMFTS at T=',num2str(init_T)]);
-% 
-% if saver_ZAFTS
-%     savefig(['ZAFTS,T',num2str(term_T),',N',num2str(N),'.fig']);
-% end
+figure(1);
+contourf(T_ts,X_ts,real(ZAMFTS),n_contours); colorbar;
+ylabel('t');
+title(['ZAMFTS at T=',num2str(init_T)]);
+
+if saver_ZAFTS
+    savefig(['ZAFTS,T',num2str(term_T),',N',num2str(N),'.fig']);
+end
 
 figure(2);
 plot(linspace(T,final_T,round(final_T/T)),TKETS,'LineWidth',2); hold on;

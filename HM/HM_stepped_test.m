@@ -13,12 +13,12 @@ close all;
 % 
 L = 40; %full width of computational box;
 sc = L/(2*pi); %scaling factor to go from [-pi,pi] to [-L/2, L/2]
-N = 128; %number of nodes in each direction
-hype_visc = 7e-23; %hyperviscosity parameter, default 7e-23
+N = 256; %number of nodes in each direction
+hype_visc = 5e-25; %hyperviscosity parameter, default 7e-23
 gamma = 8; %power on laplacian for hyperviscosity term
 kappa = 1; %mean density gradient
 alpha = 5; %adiabaticity parameter
-T = 300; %terminal time
+T = 1200; %terminal time
 N_time = T*200; %number of time steps
 dt = T/N_time;
 
@@ -26,12 +26,12 @@ x = linspace(-L/2,L/2,N+1); x(end) = []; %delete last entry
 [X,Y] = meshgrid(x,x);
 
 %%%%%%%%%%%%%%%%%%%% Change these from call to call %%%%%%%%%%%%%%%%%%%%
-is_first_time = 0;
+is_first_time = 1;
 multistep_flag = 0; %flag to see whether to use multistep, AB2BDF2 integrator
 % note in reality will want to use white noise, deterministic forcing
 % simply mimics the effect of the 2-field model HW
 real_noise = 1; %flag to see whether to use white noise, or determinisitic forcing
-saver = 0; %flag to see whether or not to save q data + zeta figure
+saver = 1; %flag to see whether or not to save q data + zeta figure
 modified = 1; %flag for oHM or mHM.   0 -> oHM      and      1 -> mHM
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -62,11 +62,13 @@ term_T = init_T + T;
 if is_first_time
     if real_noise
         k_f = N/2;
-        dk = k_f/8;
+        dk = k_f/16;
         k_vals = -ceil((N-1)/2):floor((N-1)/2); k_sq = k_vals.^2;
         k_full = k_sq + (k_sq');
         annulus_index = (k_full < (k_f + dk)^2) & (k_full > (k_f - dk)^2); %get indices in annulus, FFT ordering
-        noise_size = 1/sqrt(sum(sum(annulus_index))*dt);
+%         eps_param = 1/(2*(k_f^2));
+        eps_param = 1/(2*(k_f^2)) * 1e4;
+        noise_size = sqrt(2*eps_param*(k_f^2) / (sum(sum(annulus_index))*dt));
         params_noise = [noise_size,reshape(annulus_index,[1, N*N])];
     else
         noise_size = (kappa^2)/alpha;
@@ -149,9 +151,17 @@ end
 title(['q at T=',num2str(term_T)]);
 if saver
     if modified
-        save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+        if real_noise
+            save(['full,etdrk4,annul_noise,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+        else
+            save(['full,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+        end
     else
-        save(['oHM,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+        if real_noise
+            save(['oHM,etdrk4,annul_noise,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+        else
+            save(['oHM,etdrk4,T',num2str(term_T),',N',num2str(N),'.mat'],'q');
+        end
     end
 end
 
